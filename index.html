@@ -145,7 +145,6 @@
                     },
                     socket: '',
                     playerName: '',
-                    isLoading: false
                 }
             },
             methods: {
@@ -165,6 +164,7 @@
                     }
 
                     sessionStorage.setItem("psw", psw)
+                    console.log("save",psw)
 
                     this.enterInfoIng = false;
 
@@ -187,8 +187,10 @@
                                 token: token,
                                 playerName: this.playerName
                             }
-                            sessionStorage.setItem("userInfo", JSON.stringify(playerInfo))
+                            sessionStorage.setItem(`userInfo`, JSON.stringify(playerInfo))
 
+                            let url1 = "https://3a3b-219-71-193-56.ngrok-free.app/home.html/"
+                            let url2 = "http://192.168.0.12:3000/home.html/"
 
                             window.location.href = `http://192.168.0.12:3000/home.html/${token}`
                         }

@@ -3,6 +3,7 @@
   margin: 0;
   list-style: none;
 }
+
 .bold{
   font-weight: 900;
 }
@@ -152,3 +153,18 @@
   border: none;
 }
 
+/* 修改滚动条的滑块颜色 */
+::-webkit-scrollbar-thumb {
+  background-color: #888;
+}
+
+
+::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 16px;
+  scroll-behavior: smooth;
+}

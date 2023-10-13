@@ -32,7 +32,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        overflow: hidden;
+        overflow: scroll;
+        height: 100vh;
     }
 
     .side-area {
@@ -46,13 +47,14 @@
     .player-area {
         display: flex;
         flex-direction: column;
-        justify-content: space-around;
+        justify-content: center;
     }
 
     .player {
         padding: 0 10px;
     }
-    .player h3{
+
+    .player h3 {
         text-align: center;
     }
 
@@ -68,11 +70,14 @@
         border-radius: 5px;
     }
 
+    /* 聊天室 */
     .comment-area ul {
         height: 95%;
         margin: 10px;
         background-color: #263442;
         color: #fff;
+        overflow-y: auto;
+        scroll-behavior: smooth;
     }
 
     .comment-area ul li {
@@ -219,7 +224,7 @@
                     <h3>黑方</h3>
                     <div class="img">
                         <img src="/pic/user1.jpg" alt="">
-                    </div>                   
+                    </div>
                     <div class="info">
                         <label for="" class="bold">暱稱: </label>
                         <input type="text" class="input" :value="player1Info.name">
@@ -234,7 +239,7 @@
                     </div>
                     <div class="btn-group">
                         <button class="myButton" @click="checkLose(1)"
-                            v-show="player1Info.name != playerName">投降</button>
+                            v-show="player1Info.name == playerName">投降</button>
                     </div>
                 </div>
                 <!-- 玩家2 -->
@@ -257,7 +262,7 @@
                     </div>
                     <div class="btn-group">
                         <button class="myButton" @click="checkLose(2)"
-                            v-show="player2Info.name != playerName">投降</button>
+                            v-show="player2Info.name == playerName">投降</button>
                     </div>
                 </div>
             </div>
@@ -277,11 +282,15 @@
                     <!-- 邊界線 -->
                     <div class="out-side"></div>
                 </div>
+                <!-- 按鈕 -->
+                <div class="btn-group">
+                    <button class="btn" @click="reset" v-if="disabled">重新</button>
+                </div>
             </div>
 
             <!-- 玩家2 -->
             <div class="side-area comment-area" ref="commentArea">
-                <ul>
+                <ul ref="commentAreaUl">
                     <li v-for="item in comment">
                         <span>{{item.player}} : </span>
                         <span>{{item.message}}</span>
@@ -341,7 +350,8 @@
                     socket: '',
                     message: '',
                     playerName: '',
-                    isLoading: false
+                    isLoading: false,
+                    token: ''
                 }
             },
             methods: {
@@ -369,10 +379,8 @@
                         this.player1.push(item)
                         this.judgeWinner(this.player1, item, this.player2, () => {
                             setTimeout(() => {
-                                alert(self.currentPlayer + '贏了')
+                                this.socket.emit("broadcast", { type: 2 })
                                 self.disabled = true
-
-
                             }, 100)
 
 
@@ -389,7 +397,7 @@
                         this.player2.push(item)
                         this.judgeWinner(this.player2, item, this.player1, () => {
                             setTimeout(() => {
-                                alert(self.currentPlayer + '贏了')
+                                this.socket.emit("broadcast", { type: 2 })
                                 self.disabled = true
                             }, 100)
 
@@ -502,14 +510,11 @@
                     return result < 2
                 },
                 reset() {
-
                     this.player1 = []
                     this.player2 = []
                     this.disabled = false
 
-
                     this.socket.emit('updateStatus', { player1: this.player1, player2: this.player2, token: this.token })
-
                 },
                 sendMessage() {
                     let params = {
@@ -517,14 +522,18 @@
                         message: this.message,
                         token: this.token
                     }
-                    console.log('test')
+
+                    setTimeout(() => {
+                        this.$refs.commentAreaUl.scrollTop = Number.MAX_SAFE_INTEGER
+                    }, 100)
+
                     this.socket.emit('chat message', params)
                     this.message = ""
 
                 },
                 checkLose(type) {
                     let check = confirm("確定投降?")
-
+                    console.log("playName", this.playerName)
                     if (check) {
 
                         if (type == 1) {
@@ -536,8 +545,7 @@
                         }
 
                         this.reset()
-
-                        this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info })
+                        this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info, token: this.token, surrender: true })
                     }
 
                 },
@@ -550,6 +558,7 @@
                         this.token = tokenMatch[1];
 
                         let playerInfo = JSON.parse(sessionStorage.getItem("userInfo"))
+                        console.log('取出', playerInfo)
                         this.playerName = playerInfo.playerName
 
                         this.socket.emit('chat message', { token: this.token })
@@ -596,17 +605,20 @@
             },
             mounted() {
                 this.socket = io();
-
                 this.socket.on("updateUserInfo", (data) => {
-                    if (data[0].token == this.token) {
-                        this.player1Info = data[0].player1Info
-                        this.player2Info = data[0].player2Info
+                    console.log('觸發', data)
+                    if (data.token == this.token) {
+                        this.player1Info = data.player1Info
+                        this.player2Info = data.player2Info
                     }
                 })
 
                 this.socket.on('chat message', (data) => {
                     if (data.token == this.token) {
                         this.comment = data.msg
+                        setTimeout(() => {
+                            this.$refs.commentAreaUl.scrollTop = Number.MAX_SAFE_INTEGER
+                        }, 100)
                     }
 
                 })
@@ -622,6 +634,16 @@
                     if (data.token == this.token) {
                         this.player1 = data.player1
                         this.player2 = data.player2
+                    }
+                })
+
+                this.socket.on("broadcast", (info) => {
+                    console.log("info", info)
+                    if (info.type == 1) {
+                        alert(this.currentPlayer + "投降了")
+
+                    } else if (info.type == 2) {
+                        alert(this.currentPlayer + "獲勝")
                     }
                 })
 

@@ -44,15 +44,15 @@ function configureSocket(server) {
                 win: 0,
                 lose: 0,
                 type: "黑子",
-                psw:initData.psw
+                psw: initData.psw
             }
-            console.log('userInfo',userInfo)
+            console.log('userInfo', userInfo)
             let newData = []
 
             fs.readFile('./data/playerInfo.json', (err, data) => {
-                
+
                 newData = JSON.parse(data.toString())
-                
+
                 let selectKey = uuidv4()
                 let index = newData.findIndex(item => !item.player2Info)
 
@@ -115,7 +115,7 @@ function configureSocket(server) {
         socket.on("change", (data) => {
             io.emit("change", { color: data.color, token: data.token })
         })
-        
+
         //更新比賽狀況(已下得棋子)
         socket.on("updateStatus", (data) => {
             let newData = []
@@ -128,12 +128,12 @@ function configureSocket(server) {
                     if (index > -1) {
                         statusData[index] = data
                     } else {
-                        if(statusData.length > 1){
-                            statusData[statusData.length -1 ] = data
-                        }else{
+                        if (statusData.length > 1) {
+                            statusData[statusData.length - 1] = data
+                        } else {
                             statusData[0] = data
                         }
-                        
+
                     }
 
                     fs.writeFile('./data/playStatus.json', JSON.stringify(statusData), () => {
@@ -157,20 +157,43 @@ function configureSocket(server) {
 
 
         //更新使用者資訊
-        socket.on("updateUserInfo", (token) => {
-
+        socket.on("updateUserInfo", (webData) => {
             let newData = []
+
+            if (webData.surrender) {
+                io.emit("broadcast", { type: 1 })
+            }
+
             fs.readFile('./data/playerInfo.json', (err, data) => {
 
                 data = JSON.parse(data.toString())
+                newData = data.filter(item => item.token == webData.token)
 
-                newData = data.filter(item => item.token == token.token)
+                //正常更新
+                if (webData.player1Info && webData.player2Info) {
+                    data.push(webData)
+                    fs.writeFile('./data/playerInfo.json', JSON.stringify(data), () => {
+                        console.log("更新玩家資訊成功")
+                        newData = data.filter(item => item.token == webData.token)
+                        io.emit('updateUserInfo', newData[newData.length - 1])
+                    })
 
-                io.emit('updateUserInfo', newData)
+                    //資料量大於1代表不是初始化
+                } else if (newData.length > 1) {
+
+                    io.emit('updateUserInfo', newData[newData.length - 1])
+                }
+                //初始化
+                else {
+                    io.emit('updateUserInfo', newData[0])
+                }
+
             })
-
         })
-
+        //同時通知兩邊訊息
+        socket.on("broadcast", (num) => {
+            io.emit("broadcast", { type: info })
+        })
 
         // socket.on("disconnect", () => {
         //     fs.writeFile('./data/chartRoom.json', JSON.stringify([]), () => {
