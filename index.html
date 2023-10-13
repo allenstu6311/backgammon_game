@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./css/global.css">
+</head>
+<style>
+    html,
+    body {
+        background-color: #2c3e50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    .enterInfo {
+        position: fixed;
+        margin: auto;
+        bottom: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .enterInfo form {
+        width: 300px;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+
+    }
+    .enterInfo form input{
+        padding: 10px;
+    }
+
+    .container .title {
+        margin: 20px;
+    }
+
+    .container .title h1 {
+        color: yellow;
+        font-size: 70px;
+    }
+
+    .chose {
+        text-align: center;
+        font-size: 30px;
+    }
+    .chose ul li{
+        cursor: pointer;
+    }
+    .chose ul li:hover{
+        color: yellow;
+    }
+    .btn-group{
+        margin: 10px 0;
+    }
+    .btn-group button{
+        margin: 0 5px;
+    }
+    .enterInfo .title{
+        margin: 10px 0 20px 0;
+    }
+</style>
+
+<body>
+
+    <div id="app">
+        <div class="container">
+            <div class="title">
+                <h1 class="bold">五子棋大亂鬥</h1>
+            </div>
+
+            <div class="chose">
+                <ul>
+                    <li>單機遊戲</li>
+                    <li @click="enterInfoIng = true">連線對戰</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 輸入資料彈窗 -->
+        <div class="enterInfo" v-show="enterInfoIng">
+            <form action="" @submit.prevent="">
+                <div class="title">
+                    <h3>請輸入您的遊戲名稱</h3>
+                </div>
+                <div class="">
+                    <!-- <label for="" class="bold">玩家暱稱: </label> -->
+                    <input type="text" v-model="playerName" @keyup.enter="openNewGame" placeholder="請輸入您的暱稱">
+                </div>
+                <div class="btn-group">
+                    <button class="btn myButton" type="button" @click="openNewGame">確認</button>
+                    <button class="btn myButton" type="button" @click="enterInfoIng = false">取消</button>
+                </div>
+            </form>
+        </div>
+        <!-- loading -->
+        <div class="loading" v-show="isLoading">
+            <div class="sk-chase">
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"
+        integrity="sha512-emSwuKiMyYedRwflbZB2ghzX8Cw8fmNVgZ6yQNNXXagFzFOaQmbvQ1vmDkddHjm5AITcBIZfC7k4ShQSjgPAmQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        const app = {
+            data() {
+                return {
+                    enterInfoIng: false,
+                    disabled: false,
+                    player1Info: {
+                        img: 'https://picsum.photos/id/237/200/300',
+                        name: "",
+                        win: 0,
+                        lose: 0
+                    },
+                    player2Info: {
+                        img: 'https://picsum.photos/seed/picsum/200/300',
+                        name: "",
+                        win: 0,
+                        lose: 0
+                    },
+                    socket: '',
+                    playerName: '',
+                    isLoading: false
+                }
+            },
+            methods: {
+                openNewGame() {
+
+                    if (!this.playerName) {
+                        alert("請出入暱稱")
+                        return
+                    }
+
+                    var psw = '';
+                    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                    var charactersLength = characters.length;
+                    for (var i = 0; i < charactersLength; i++) {
+                        var randomIndex = Math.floor(Math.random() * charactersLength);
+                        psw += characters.charAt(randomIndex);
+                    }
+
+                    sessionStorage.setItem("psw", psw)
+
+                    this.enterInfoIng = false;
+
+                    this.socket.emit("openNewGame", { name: this.playerName, psw: psw })
+                    this.isLoading = true
+
+                },
+            },
+            computed: {},
+            mounted() {
+                this.socket = io();
+
+                this.socket.on('openNewGame', (res) => {
+
+                    if (res && res.length) {
+                        let psw = sessionStorage.getItem("psw")
+                        if (psw == res[0].player1Info.psw || psw == res[0].player2Info.psw) {
+                            let token = res[0].token
+                            let playerInfo = {
+                                token: token,
+                                playerName: this.playerName
+                            }
+                            sessionStorage.setItem("userInfo", JSON.stringify(playerInfo))
+
+
+                            window.location.href = `http://192.168.0.12:3000/home.html/${token}`
+                        }
+                    }
+
+                })
+            },
+        }
+
+        Vue.createApp(app).mount('#app')
+    </script>
+
+
+</body>
+
+</html>

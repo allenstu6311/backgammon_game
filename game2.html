@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋遊戲</title>
+    <link rel="stylesheet" href="./css/global.css">
+</head>
+<style>
+    * {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        background-color: #2c3e50;
+    }
+
+    body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .container {
+        width: 100vw;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .side-area {
+        width: 0;
+        transition: .5s;
+        background-color: #54779b;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .player-area {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+    }
+
+    .player {
+        padding: 0 10px;
+    }
+
+    .game-area {
+        width: 550px;
+        display: flex;
+        flex-wrap: wrap;
+        margin: auto;
+        padding-right: 20px;
+        padding-bottom: 30px;
+        background-color: #C9815D;
+        position: relative;
+        border-radius: 5px;
+    }
+
+    .comment-area ul {
+        height: 95%;
+        margin: 10px;
+        background-color: #263442;
+        color: #fff;
+    }
+
+    .comment-area ul li {
+        padding: 5px;
+    }
+
+    .comment {
+        display: flex;
+        justify-content: center;
+    }
+
+    .comment input {
+        width: 70%;
+        padding: 10px 0;
+        background-color: #263442;
+        color: #fff;
+    }
+
+    .comment button {
+        width: 20%;
+        background-color: red;
+        color: #fff;
+        font-weight: 900;
+    }
+
+    .btn-group {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .btn-group .btn {
+        font-size: 20px;
+        padding: 5px 15px;
+        border-radius: 5px;
+        font-weight: 900;
+        cursor: pointer;
+        background-color: #C9815D;
+        color: #fff;
+    }
+
+    .out-side {
+        position: absolute;
+        left: 20px;
+        top: 22px;
+        width: 530px;
+        height: 590px;
+        border: 1px solid black;
+    }
+
+    .column {
+        width: 30px;
+        height: 30px;
+        border: 1px solid black;
+        position: relative;
+        background-color: #C9815D;
+    }
+
+    .content {
+        width: 30px;
+        height: 30px;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        border-radius: 50%;
+        z-index: 100;
+        cursor: pointer;
+    }
+
+    .player1 {
+        background-color: black;
+    }
+
+    .player2 {
+        background-color: white;
+    }
+
+    .cancleBorder {
+        border: none;
+        background-color: transparent;
+    }
+
+    .leftBorder {
+        border-left: 1px solid black;
+    }
+
+    .rightBorder {
+        border-right: 1px solid black;
+    }
+
+    .disabled {
+        pointer-events: none !important;
+    }
+
+    .notAllow {
+        cursor: not-allowed;
+    }
+
+    .player .img {
+        text-align: center;
+        padding: 10px 0;
+    }
+
+    img {
+        width: 100%;
+        height: 350px;
+        object-fit: cover;
+    }
+
+    .enterInfo {
+        position: fixed;
+        margin: auto;
+        bottom: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .enterInfo form {
+        width: 300px;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+
+    }
+
+    .bold {
+        font-weight: 900;
+    }
+
+    .loading {
+        position: fixed;
+        margin: auto;
+        bottom: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+</style>
+
+<body>
+
+    <div id="app">
+        <div class="container">
+            <div class="player-area side-area" ref="playerArea">
+                <!-- 玩家1 -->
+                <div class="player">
+                    <h3>(黑)</h3>
+                    <div class="img">
+                        <img :src="player1Info.img" alt="">
+                    </div>
+                    <div class="name">暱稱: {{player1Info.name}}</div>
+                    <div class="">勝: {{player1Info.win}}場</div>
+                    <div class="">負: {{player1Info.lose}}場</div>
+                    <div class="btn-group">
+                        <button class="btn" @click="checkLose(1)" :disabled="player1Info.name != playerName">投降</button>
+                    </div>
+                </div>
+                <!-- 玩家2 -->
+                <div class="player">
+                    <h3>(白)</h3>
+                    <div class="img">
+                        <img :src="player2Info.img" alt="">
+                    </div>
+                    <div class="name">暱稱: {{player2Info.name}}</div>
+                    <div class="">勝: {{player2Info.win}}場</div>
+                    <div class="">負: {{player2Info.lose}}場</div>
+                    <div class="btn-group">
+                        <button class="btn" @click="checkLose(2)" :disabled="player2Info.name != playerName">投降</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="middle">
+                <!-- 棋盤區 -->
+                <div class="">
+                    <h3 style="color: yellow;">目前攻方:{{currentPlayer}}</h3>
+                </div>
+                <div class="game-area" :class="{notAllow:!checkPlayer}">
+                    <div class="column" v-for="item in 324"
+                        :class="{cancleBorder:cancleBorder(item),disabled:!checkPlayer}">
+                        <div class="content" :class="{player1:player1.includes(item),player2:player2.includes(item),}"
+                            @click="playChess(item)">
+                        </div>
+                    </div>
+                    <!-- 邊界線 -->
+                    <div class="out-side"></div>
+                </div>
+                <!-- 按鈕 -->
+                <!-- <div class="btn-group">
+                    <button class="btn" @click="reset">重新開始一局</button>
+                </div> -->
+            </div>
+
+            <!-- 玩家2 -->
+            <div class="side-area comment-area" ref="commentArea">
+                <ul>
+                    <li v-for="item in comment">
+                        <span>{{item.player}} : </span>
+                        <span>{{item.message}}</span>
+                    </li>
+                </ul>
+                <div class="comment">
+                    <input type="text" placeholder="請出入訊息" v-model="message" @keyup.enter="sendMessage">
+                    <button @click="sendMessage">送出</button>
+                </div>
+            </div>
+
+            <!-- 輸入資料彈窗 -->
+            <div class="enterInfo" v-show="enterInfoIng">
+                <form action="" @submit.prevent="">
+                    <div class="">
+                        <label for="" class="bold">玩家暱稱: </label>
+                        <input type="text" v-model="playerName" @keyup.enter="openNewGame">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn" type="button" @click="openNewGame">確認</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- loading -->
+        <div class="loading" v-show="isLoading">
+            <div class="sk-chase">
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+                <div class="sk-chase-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://unpkg.com/vue@next"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"
+        integrity="sha512-emSwuKiMyYedRwflbZB2ghzX8Cw8fmNVgZ6yQNNXXagFzFOaQmbvQ1vmDkddHjm5AITcBIZfC7k4ShQSjgPAmQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+
+    <script>
+        const app = {
+            data() {
+                return {
+                    player1: [],
+                    player2: [],
+                    currentPlayer: '黑子',
+                    black: '黑子',
+                    white: '白子',
+                    disabled: false,
+                    player1Info: {
+                        img: 'https://picsum.photos/id/237/200/300',
+                        name: "",
+                        win: 0,
+                        lose: 0
+                    },
+                    player2Info: {
+                        img: 'https://picsum.photos/seed/picsum/200/300',
+                        name: "",
+                        win: 0,
+                        lose: 0
+                    },
+                    enterInfoIng: true,
+                    comment: [],
+                    socket: '',
+                    message: '',
+                    playerName: '',
+                    isLoading: false
+                }
+            },
+            methods: {
+                callBackendAPI(url, param, callBack) {
+                    return axios.get(url, {
+                        params: {
+                            param
+                        }
+                    })
+                        .then((res) => {
+                            callBack(res)
+                        })
+                        .catch((err) => {
+                            console.log(err)
+                        })
+                },
+                //下棋
+                playChess(item) {
+                    let self = this;
+                    if (this.player1.includes(item) || this.player2.includes(item)) {
+                        alert("該位置已有棋子")
+                        return
+                    }
+                    if (this.currentPlayer == this.black) {
+                        this.player1.push(item)
+                        this.judgeWinner(this.player1, item, this.player2, () => {
+                            setTimeout(() => {
+                                alert(self.currentPlayer + '贏了')
+                                self.disabled = true
+
+
+                            }, 100)
+
+
+                            this.player1Info.win += 1
+                            this.player2Info.lose += 1
+                            this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info })
+
+                        }, () => {
+                            this.socket.emit("change", this.white)
+                        })
+
+
+                    } else {
+                        this.player2.push(item)
+                        this.judgeWinner(this.player2, item, this.player1, () => {
+                            setTimeout(() => {
+                                alert(self.currentPlayer + '贏了')
+                                self.disabled = true
+                            }, 100)
+
+                            this.player2Info.win += 1
+                            this.player1Info.lose += 1
+                            this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info })
+
+                        }, () => {
+                            this.socket.emit("change", this.black)
+                        })
+
+                    }
+
+                    this.socket.emit('updateStatus', { player1: this.player1, player2: this.player2 })
+                },
+                //隱藏部分格子
+                cancleBorder(item) {
+                    if (item < 20) {
+                        return true
+                    }
+
+                    let result = []
+                    for (let i = 1; i < 20; i++) {
+                        result.push(19 + 17 * i)
+                    }
+
+                    return result.includes(item)
+                },
+                //找贏家
+                judgeWinner(array, currentNum, array2, callBack1, callBack2) {
+                    let haswinner = false;
+                    //判斷左上、右下
+                    if (this.judgeStatus(18, array, currentNum, array2)) {
+                        haswinner = true
+                    }
+                    //判斷左下、右上
+                    if (this.judgeStatus(16, array, currentNum, array2) && !haswinner) {
+                        haswinner = true
+                    }
+                    //判斷左右
+                    if (this.judgeStatus(1, array, currentNum, array2) && !haswinner) {
+                        haswinner = true
+                    }
+                    //判斷上下
+                    if (this.judgeStatus(17, array, currentNum, array2) && !haswinner) {
+                        haswinner = true
+                    }
+
+                    if (haswinner) {
+                        callBack1()
+                    } else {
+                        callBack2()
+                    }
+                },
+                //判斷當前狀態是否勝出
+                judgeStatus(range, array, currentNum, array2) {
+
+                    let later = []
+                    let front = []
+                    let result = [currentNum]
+                    //將該狀況的前後4格數字都蒐集起來
+                    for (let i = 1; i <= 4; i++) {
+                        later.push(currentNum + (range * i))
+                        front.push(currentNum - (range * i))
+                    }
+                    //如果被另一個對手下過的地方就停止繼續蒐集
+                    for (let i = 0; i < later.length; i++) {
+                        if (array2.includes(later[i])) {
+                            break
+                        }
+
+                        if (array.includes(later[i])) {
+                            result.push(later[i])
+                        }
+                    }
+                    //如果被另一個對手下過的地方就停止繼續蒐集
+                    for (let i = 0; i < front.length; i++) {
+                        if (array2.includes(front[i])) {
+                            break
+                        }
+
+                        if (array.includes(front[i])) {
+                            result.push(front[i])
+                        }
+                    }
+
+                    result = [...new Set(result)]
+                    result.sort((a, b) => a - b)
+
+                    if (result.length >= 5) {
+                        return this.judgeBorder(currentNum, result)
+                    }
+
+                    return false
+                },
+                //判斷邊界(如果結果同時在兩個邊界代表跨界)
+                judgeBorder(currentNum, resultArr) {
+                    let activeArr = [...resultArr]
+                    let result = 0
+                    for (let i = 0; i < activeArr.length; i++) {
+                        if (this.leftBordder.includes(activeArr[i])) {
+                            result += 1
+                        }
+
+                        if (this.rightBordder.includes(activeArr[i])) {
+                            result += 1
+                        }
+                    }
+
+                    return result < 2
+                },
+                reset() {
+                    let check = confirm("確定清除?")
+                    if (check) {
+                        this.player1 = []
+                        this.player2 = []
+                        this.disabled = false
+
+
+                        this.socket.emit('updateStatus', { player1: this.player1, player2: this.player2 })
+                    }
+                },
+                openNewGame() {
+
+                    if (!this.playerName) {
+                        alert("請出入暱稱")
+                        return
+                    }
+
+                    var psw = '';
+                    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                    var charactersLength = characters.length;
+                    for (var i = 0; i < charactersLength; i++) {
+                        var randomIndex = Math.floor(Math.random() * charactersLength);
+                        psw += characters.charAt(randomIndex);
+                    }
+
+                    sessionStorage.setItem("psw", psw)
+
+                    this.enterInfoIng = false;
+
+                    this.socket.emit("openNewGame", { name: this.playerName, psw: psw })
+                    this.isLoading = true
+
+                },
+                sendMessage() {
+                    let params = {
+                        player: this.playerName,
+                        message: this.message,
+                        token: this.token
+                    }
+                    this.socket.emit('chat message', params)
+                    this.message = ""
+
+                },
+                checkLose(type) {
+                    let check = confirm("確定投降?")
+
+                    if (check) {
+
+                        if (type == 1) {
+                            this.player1Info.lose += 1
+                            this.player2Info.win += 1
+                        } else {
+                            this.player2Info.lose += 1
+                            this.player1Info.win += 1
+                        }
+
+                        this.reset()
+
+                        this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info })
+                    }
+
+                }
+            },
+            computed: {
+                //右側邊界
+                rightBordder() {
+                    let result = []
+                    for (let i = 0; i < 20; i++) {
+                        result.push(18 + 17 * i)
+                    }
+                    return result
+                },
+                //左側邊界
+                leftBordder() {
+                    let result = []
+                    for (let i = 0; i < 20; i++) {
+                        result.push(19 + 17 * i)
+                    }
+                    return result
+                },
+                checkPlayer() {
+                    if (this.player1Info.name == this.playerName) {
+                        return this.currentPlayer == this.player1Info.type
+
+                    } else if (this.player2Info.name == this.playerName) {
+                        return this.currentPlayer == this.player2Info.type
+
+                    }
+
+                    return false
+                }
+            },
+            mounted() {
+                this.socket = io();
+
+                this.socket.on('openNewGame', (res) => {
+
+                    if (res && res.length) {
+                        let psw = sessionStorage.getItem("psw")
+                        console.log("psw", psw, "res", res)
+                        if (psw == res[0].player1Info.psw || psw == res[0].player2Info.psw) {
+                            let token = res[0].token
+                            let playerInfo = {
+                                token: token,
+                                playerName: this.playerName
+                            }
+                            sessionStorage.setItem("userInfo", JSON.stringify(playerInfo))
+
+
+                            // this.player1Info = res[0].player1Info
+                            // this.player1Info.img = "https://picsum.photos/id/237/200/300"
+                            // this.player2Info = res[0].player2Info
+                            // this.player2Info.img = "https://picsum.photos/seed/picsum/200/300"
+
+                            // this.isLoading = false
+                            // this.$refs.playerArea.style.width = 15 + '%'
+                            // this.$refs.commentArea.style.width = 15 + '%'
+
+                            window.location.href = `http://192.168.0.12:3000/home.html/${token}`
+                        }
+                    }
+
+                })
+
+                // this.socket.on("updateUserInfo", (data) => {
+                //     this.player1Info = data.player1Info
+                //     this.player1Info.img = "https://picsum.photos/id/237/200/300"
+                //     this.player2Info = data.player2Info
+                //     this.player2Info.img = "https://picsum.photos/seed/picsum/200/300"
+                // })
+
+                // this.socket.on('chat message', (msg) => {
+                //     this.comment = msg
+                // })
+
+                // this.socket.on("change", (color) => {
+                //     this.currentPlayer = color
+                // })
+
+                // this.socket.on('updateStatus', (data) => {
+                //     this.player1 = data.player1
+                //     this.player2 = data.player2
+                // })
+
+                // window.addEventListener('beforeunload', (event) => {
+                //     this.socket.emit('closeWindow', { token: this.token });
+                // });
+
+            },
+
+        }
+
+        Vue.createApp(app).mount('#app')
+    </script>
+
+</body>
+
+</html>
