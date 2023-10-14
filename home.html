@@ -27,35 +27,52 @@
         justify-content: center;
     }
 
-    .container {
+    #app {
         width: 100vw;
+    }
+
+    .container {
+        width: 100%;
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        overflow: scroll;
+        align-items: flex-start;
         height: 100vh;
+
     }
 
     .side-area {
         width: 0;
         transition: .5s;
         background-color: #54779b;
-        height: 100vh;
-        overflow: hidden;
+        display: inline-block;
     }
 
     .player-area {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+        overflow-y: scroll;
+        height: 100%;
     }
 
     .player {
-        padding: 0 10px;
+        padding: 10px;
     }
 
     .player h3 {
         text-align: center;
+
+    }
+
+    .middle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        position: relative;
+    }
+
+    .currentPlayer {
+        position: absolute;
+        top: -30px;
+
     }
 
     .game-area {
@@ -68,11 +85,17 @@
         background-color: #C9815D;
         position: relative;
         border-radius: 5px;
+        transform: scale(0.9);
+        position: relative;
     }
 
     /* 聊天室 */
+    .comment-area {
+        height: 100%;
+    }
+
     .comment-area ul {
-        height: 95%;
+        height: 90%;
         margin: 10px;
         background-color: #263442;
         color: #fff;
@@ -86,7 +109,7 @@
 
     .comment {
         width: 96%;
-        height: 40px;
+        height: 5%;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -96,10 +119,11 @@
     .comment input {
         display: block;
         height: 100%;
-        width: 68%;
+        width: 65%;
         background-color: #263442;
         color: #fff;
         border: none;
+        padding-left: 5px;
     }
 
     .comment button {
@@ -112,9 +136,9 @@
     }
 
     .btn-group {
-        margin-top: 20px;
         display: flex;
         justify-content: center;
+        padding: 10px 0;
     }
 
     .btn-group .btn {
@@ -191,13 +215,10 @@
 
     img {
         width: 100%;
-        height: 350px;
+        height: 250px;
         object-fit: cover;
     }
 
-    .bold {
-        font-weight: 900;
-    }
 
     .loading {
         position: fixed;
@@ -269,10 +290,11 @@
 
             <div class="middle">
                 <!-- 棋盤區 -->
-                <div class="">
-                    <h3 style="color: yellow;">目前攻方:{{currentPlayer}}</h3>
-                </div>
                 <div class="game-area" :class="{notAllow:!checkPlayer}">
+                    <!-- 提示當前棋手 -->
+                    <div class="currentPlayer">
+                        <h3 style="color: yellow;">目前攻方:{{currentPlayer}}</h3>
+                    </div>
                     <div class="column" v-for="item in 324"
                         :class="{cancleBorder:cancleBorder(item),disabled:!checkPlayer}">
                         <div class="content" :class="{player1:player1.includes(item),player2:player2.includes(item),}"
@@ -282,13 +304,7 @@
                     <!-- 邊界線 -->
                     <div class="out-side"></div>
                 </div>
-                <!-- 按鈕 -->
-                <div class="btn-group">
-                    <button class="btn" @click="reset" v-if="disabled">重新</button>
-                </div>
             </div>
-
-            <!-- 玩家2 -->
             <div class="side-area comment-area" ref="commentArea">
                 <ul ref="commentAreaUl">
                     <li v-for="item in comment">
@@ -377,12 +393,12 @@
                     }
                     if (this.currentPlayer == this.black) {
                         this.player1.push(item)
+
                         this.judgeWinner(this.player1, item, this.player2, () => {
                             setTimeout(() => {
-                                this.socket.emit("broadcast", { type: 2 })
+                                this.socket.emit("broadcast", { type: 2, token: this.token })
                                 self.disabled = true
                             }, 100)
-
 
                             this.player1Info.win += 1
                             this.player2Info.lose += 1
@@ -390,11 +406,14 @@
 
                         }, () => {
                             this.socket.emit("change", { color: this.white, token: this.token })
+                            this.socket.emit('updateStatus', { player1: this.player1, player2: this.player2, token: this.token, currentPlayer: this.white })
                         })
 
 
                     } else {
                         this.player2.push(item)
+
+
                         this.judgeWinner(this.player2, item, this.player1, () => {
                             setTimeout(() => {
                                 this.socket.emit("broadcast", { type: 2 })
@@ -403,15 +422,14 @@
 
                             this.player2Info.win += 1
                             this.player1Info.lose += 1
-                            this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info })
+                            this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info, token: this.token })
 
                         }, () => {
                             this.socket.emit("change", { color: this.black, token: this.token })
+
+                            this.socket.emit('updateStatus', { player1: this.player1, player2: this.player2, token: this.token, currentPlayer: this.black })
                         })
-
                     }
-
-                    this.socket.emit('updateStatus', { player1: this.player1, player2: this.player2, token: this.token })
                 },
                 //隱藏部分格子
                 cancleBorder(item) {
@@ -533,7 +551,7 @@
                 },
                 checkLose(type) {
                     let check = confirm("確定投降?")
-                    console.log("playName", this.playerName)
+                    console.log("playName", this.currentPlayerInfo)
                     if (check) {
 
                         if (type == 1) {
@@ -545,7 +563,9 @@
                         }
 
                         this.reset()
-                        this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info, token: this.token, surrender: true })
+                        this.socket.emit("updateUserInfo", { player1Info: this.player1Info, player2Info: this.player2Info, token: this.token })
+
+                        this.socket.emit("broadcast", { type: 1, token: this.token })
                     }
 
                 },
@@ -558,15 +578,14 @@
                         this.token = tokenMatch[1];
 
                         let playerInfo = JSON.parse(sessionStorage.getItem("userInfo"))
-                        console.log('取出', playerInfo)
                         this.playerName = playerInfo.playerName
 
                         this.socket.emit('chat message', { token: this.token })
                         this.socket.emit("updateUserInfo", { token: this.token })
                         this.socket.emit('updateStatus', { token: this.token })
 
-                        this.$refs.playerArea.style.width = 15 + '%'
-                        this.$refs.commentArea.style.width = 15 + '%'
+                        this.$refs.playerArea.style.width = 20 + '%'
+                        this.$refs.commentArea.style.width = 20 + '%'
                     }
 
 
@@ -601,12 +620,31 @@
 
                     return false
                 },
+                //當前玩家資訊
+                currentPlayerInfo() {
+                    if (this.player1Info.name == this.playerName) {
+                        return this.player1Info
+
+                    } else if (this.player2Info.name == this.playerName) {
+                        return this.player2Info
+
+                    }
+                },
+                //當前對手資訊
+                opponentPlayerInfo() {
+                    if (this.player1Info.name != this.playerName) {
+                        return this.player1Info
+
+                    } else if (this.player2Info.name != this.playerName) {
+                        return this.player2Info
+
+                    }
+                },
 
             },
             mounted() {
                 this.socket = io();
                 this.socket.on("updateUserInfo", (data) => {
-                    console.log('觸發', data)
                     if (data.token == this.token) {
                         this.player1Info = data.player1Info
                         this.player2Info = data.player2Info
@@ -634,22 +672,51 @@
                     if (data.token == this.token) {
                         this.player1 = data.player1
                         this.player2 = data.player2
+                        this.currentPlayer = data.currentPlayer ? data.currentPlayer : "黑子"
                     }
                 })
 
                 this.socket.on("broadcast", (info) => {
-                    console.log("info", info)
-                    if (info.type == 1) {
-                        alert(this.currentPlayer + "投降了")
+                    if (info.token == this.token)
+                        if (info.type == 1) {
+                            alert(this.currentPlayerInfo.type + "投降了")
 
-                    } else if (info.type == 2) {
-                        alert(this.currentPlayer + "獲勝")
-                    }
+                        } else if (info.type == 2) {
+                            alert(this.currentPlayer + "獲勝")
+                            this.reset()
+                        }
                 })
 
-                // window.addEventListener('beforeunload', (event) => {
-                //     this.socket.emit('closeWindow', { token: this.token });
-                // });
+                this.socket.on("closeWindow", (data) => {
+
+                    if (data.token == this.token && data.name == this.playerName) {
+                        let check = confirm("確定要進行此操作?可能會丟失遊戲數據")
+                        if (check) {
+                            this.socket.emit("user-disconnected", { token: this.token })
+                        }
+
+                    }
+
+                    else if (data.token == this.token) {
+                        this.socket.emit("user-disconnected", { token: this.token })
+                    }
+
+                })
+
+                this.socket.on('user-disconnected', (data) => {
+                    
+                    if (data.token == this.token) {
+                        let url1 = "https://cattus.serveo.net/"
+                        let url2 = "http://192.168.0.12:3000"
+                        let url3 = "http://192.168.0.129:3000"
+                        window.location.href = `${url1}`
+                        alert("對方已退出遊戲，即將返回首頁")
+                    }
+                });
+
+                window.addEventListener('beforeunload', (event) => {
+                    this.socket.emit('closeWindow', { token: this.token, name: this.playerName });
+                });
 
                 this.initGame()
             },

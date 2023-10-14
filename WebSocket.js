@@ -1,13 +1,22 @@
-const fs = require('fs');
-const { Server } = require('socket.io');
-const { v4: uuidv4 } = require('uuid');
-
+const {  
+    express,
+    app,
+    server,
+    path,
+    bodyParser,
+    os,
+    fs,
+    jwt,
+    uuidv4,
+    Server,
+    join,
+    getLocalIpAddress
+ } = require('./myModule');
 //配置socket io
 function configureSocket(server) {
     const io = new Server(server);
 
     io.on('connection', (socket) => {
-
         socket.on('chat message', (msg) => {
             let msgData = {}
 
@@ -46,7 +55,6 @@ function configureSocket(server) {
                 type: "黑子",
                 psw: initData.psw
             }
-            console.log('userInfo', userInfo)
             let newData = []
 
             fs.readFile('./data/playerInfo.json', (err, data) => {
@@ -64,6 +72,8 @@ function configureSocket(server) {
 
                     fs.writeFile('./data/playerInfo.json', JSON.stringify(newData), () => {
                         let responseData = newData.filter(item => item.token == selectKey)
+                        responseData[0].url = getLocalIpAddress()
+                        console.log('responseData',responseData)
                         io.emit("openNewGame", responseData)
                     });
 
@@ -97,20 +107,7 @@ function configureSocket(server) {
                 }
             })
         })
-        //刪除聊天資訊
-        // socket.on("closeWindow", (token) => {
-        //     console.log("msg", token)
-        //     fs.readFile('./data/chartRoom.json', (err, data) => {
-        //         let newData = data.filter(item => item.token == token)
 
-        //         if (!Array.isArray(newData)) {
-        //             newData = []
-        //         }
-        //         fs.writeFile('./data/chartRoom.json', JSON.stringify(newData), () => {
-        //             console.log("刪除聊天資訊成功")
-        //         });
-        //     });
-        // })
         //更換下棋手
         socket.on("change", (data) => {
             io.emit("change", { color: data.color, token: data.token })
@@ -139,7 +136,7 @@ function configureSocket(server) {
                     fs.writeFile('./data/playStatus.json', JSON.stringify(statusData), () => {
                         console.log("更新遊戲狀態成功")
                     })
-
+                    console.log('send', statusData[index])
                     io.emit('updateStatus', statusData[index])
 
                 } else {
@@ -147,7 +144,7 @@ function configureSocket(server) {
 
                     if (newData.length) {
 
-                        io.emit('updateStatus', { player1: newData[0].player1, player2: newData[0].player2, token: data.token })
+                        io.emit('updateStatus', { player1: newData[0].player1, player2: newData[0].player2, token: data.token, currentPlayer: newData[0].currentPlayer })
                     }
 
                 }
@@ -160,18 +157,16 @@ function configureSocket(server) {
         socket.on("updateUserInfo", (webData) => {
             let newData = []
 
-            if (webData.surrender) {
-                io.emit("broadcast", { type: 1 })
-            }
-
             fs.readFile('./data/playerInfo.json', (err, data) => {
 
                 data = JSON.parse(data.toString())
                 newData = data.filter(item => item.token == webData.token)
+                let index = data.findIndex(item => item.token == webData.token)
 
                 //正常更新
                 if (webData.player1Info && webData.player2Info) {
-                    data.push(webData)
+                    // data.push(webData)
+                    data[index] = webData
                     fs.writeFile('./data/playerInfo.json', JSON.stringify(data), () => {
                         console.log("更新玩家資訊成功")
                         newData = data.filter(item => item.token == webData.token)
@@ -191,15 +186,38 @@ function configureSocket(server) {
             })
         })
         //同時通知兩邊訊息
-        socket.on("broadcast", (num) => {
-            io.emit("broadcast", { type: info })
+        socket.on("broadcast", (data) => {
+            io.emit("broadcast", { type: data.type,token:data.token })
         })
 
-        // socket.on("disconnect", () => {
-        //     fs.writeFile('./data/chartRoom.json', JSON.stringify([]), () => {
-        //         console.log("success")
-        //     });
-        // })
+        //判斷玩家離開
+        socket.on("closeWindow", (webData) => {
+        
+            console.log('closeWindow',webData.name)
+            io.emit("closeWindow", { name: webData.name, token: webData.token })
+        })
+
+        socket.on("user-disconnected", (webData) => {
+            console.log('backend')
+            socket.name = webData.name
+            socket.token = webData.token
+            setTimeout(() =>{
+                console.log('data',webData)
+                io.emit("user-disconnected", { token: webData.token })
+                console.log('after')
+            },3000)
+           
+        })
+
+        socket.on("disconnect", () => {
+            if (socket.name) {
+                setTimeout(() => {
+                    console.log('disconnect')
+                    io.emit("user-disconnected", { name: socket.name, token: socket.token })
+
+                }, 2000)
+            }
+        })
     });
 
 

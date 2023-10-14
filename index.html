@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>五子棋遊戲</title>
     <link rel="stylesheet" href="./css/global.css">
 </head>
 <style>
@@ -178,7 +178,7 @@
                 this.socket = io();
 
                 this.socket.on('openNewGame', (res) => {
-
+              
                     if (res && res.length) {
                         let psw = sessionStorage.getItem("psw")
                         if (psw == res[0].player1Info.psw || psw == res[0].player2Info.psw) {
@@ -189,10 +189,12 @@
                             }
                             sessionStorage.setItem(`userInfo`, JSON.stringify(playerInfo))
 
-                            let url1 = "https://3a3b-219-71-193-56.ngrok-free.app/home.html/"
+                            let url1 = "https://cattus.serveo.net/home.html/"
                             let url2 = "http://192.168.0.12:3000/home.html/"
+                            let url3 = "http://192.168.0.129:3000/home.html/"
 
-                            window.location.href = `http://192.168.0.12:3000/home.html/${token}`
+                            // window.location.href = `http://${res[0].url}:3000/home.html/${token}`
+                            window.location.href = `${url1}${token}`
                         }
                     }
 
