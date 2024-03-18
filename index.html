@@ -72,6 +72,21 @@
     .enterInfo .title{
         margin: 10px 0 20px 0;
     }
+    .loading {
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        margin: auto;
+        bottom: 0;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    }
 </style>
 
 <body>
@@ -189,12 +204,11 @@
                             }
                             sessionStorage.setItem(`userInfo`, JSON.stringify(playerInfo))
 
-                            let url1 = "https://d88a-61-70-231-54.ngrok-free.app/home.html/"
-                            let url2 = "http://192.168.0.12:3000/home.html/"
-                            let url3 = "http://192.168.0.129:3000/home.html/"
+                            let url1 = "https://1805-219-70-160-43.ngrok-free.app/home.html/"
 
                             // window.location.href = `http://${res[0].url}:3000/home.html/${token}`
-                            window.location.href = `${url1}${token}`
+                            // window.location.href = `${url1}${token}`
+                            window.location.href = window.location.href + `home.html/` + token
                         }
                     }
 

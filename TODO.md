@@ -4,5 +4,11 @@
 4.中途取消配對
 
 
+**下次操作更改代理服務器時要到home的最上方修改base即可
+
+
+ngrok http http://localhost:3000
+
+
 
 
